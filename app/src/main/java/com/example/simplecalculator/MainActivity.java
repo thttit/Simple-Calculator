@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
         if(button_text.equals("=")){
-            Double result = null;
+            solution.setText(result.getText());
             return;
         }
         if(button_text.equals("C")){
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         solution.setText(data);
 
         String final_result = getResult(data);
-        if(!final_result.equals("Err")){
+        if(!final_result.equals("Error")){
             result.setText(final_result);
         }
     }
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             return final_result;
         } catch (Exception e){
-            return "Err";
+            return "Error";
         }
     }
 
