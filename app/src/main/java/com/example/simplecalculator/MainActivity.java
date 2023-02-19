@@ -1,15 +1,19 @@
 package com.example.simplecalculator;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -18,6 +22,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     MaterialButton btn_1, btn_2, btn_3, btn_4, btn_5, btn_6, btn_7, btn_8, btn_9;
     MaterialButton btn_plus, btn_subtrac, btn_multi, btn_divide;
 
+    ArrayList<String> result_2 = new ArrayList<String>();
+    ArrayList<String> solution_2 = new ArrayList<String>();
+
+    MaterialButton btn_his;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         result = findViewById(R.id.result);
         solution = findViewById(R.id.solution);
+        btn_his = findViewById(R.id.btn_his);
 
         assignID(btn_c, R.id.btn_c);
         assignID(btn_ce, R.id.btn_ce);
@@ -45,7 +55,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         assignID(btn_multi, R.id.btn_multi);
         assignID(btn_divide, R.id.btn_divide);
 
-
+        btn_his.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getApplicationContext(), history.class);
+                if (result_2 != null || solution_2 != null){
+                    intent.putExtra("result", result_2);
+                    intent.putExtra("solution", solution_2);
+                }
+                startActivity(intent);
+            }
+        });
     }
 
     void assignID(MaterialButton btn, int id){
@@ -66,10 +86,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if(button_text.equals("=")){
             solution.setText(result.getText());
+            solution_2.add(solution.getText().toString());
             return;
         }
         if(button_text.equals("C")){
             data = data.substring(0, data.length()-1);
+            result.setText("0");
         } else {
             data = data + button_text;
         }
@@ -94,6 +116,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (Exception e){
             return "Error";
         }
+    }
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (result.getText().toString()!=null)
+            outState.putString("result", result.getText().toString());
+
+        if (solution.getText().toString()!=null)
+            outState.putString("solution", solution.getText().toString());
+
+        if (result_2 != null)
+            outState.putStringArrayList("results", result_2);
+
+        if (solution_2 != null)
+            outState.putStringArrayList("solutions", solution_2);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if (savedInstanceState.get("result")!=null)
+            result.setText(savedInstanceState.get("result").toString());
+        if (savedInstanceState.get("solution")!=null)
+            solution.setText(savedInstanceState.get("solution").toString());
+
+        if (savedInstanceState.get("results")!= null)
+            result_2 = savedInstanceState.getStringArrayList("results");
+
+        if (savedInstanceState.get("solutions")!= null)
+            solution_2 = savedInstanceState.getStringArrayList("solutions");
     }
 
 }
