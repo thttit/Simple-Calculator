@@ -3,15 +3,13 @@ package com.example.simplecalculator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
-
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
 
 import java.util.ArrayList;
 
@@ -20,12 +18,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView result, solution;
     MaterialButton btn_c, btn_ce, btn_open, btn_close, btn_dot;
     MaterialButton btn_1, btn_2, btn_3, btn_4, btn_5, btn_6, btn_7, btn_8, btn_9;
-    MaterialButton btn_plus, btn_subtrac, btn_multi, btn_divide;
+    MaterialButton btn_plus, btn_subtrac, btn_multi, btn_divide, btn_equal;
 
     ArrayList<String> result_2 = new ArrayList<String>();
     ArrayList<String> solution_2 = new ArrayList<String>();
 
-    MaterialButton btn_his;
+    Button btn_his;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         assignID(btn_open, R.id.btn_open);
         assignID(btn_close, R.id.btn_close);
         assignID(btn_dot, R.id.btn_dot);
+        assignID(btn_equal, R.id.btn_equal);
         assignID(btn_1, R.id.btn_1);
         assignID(btn_2, R.id.btn_2);
         assignID(btn_3, R.id.btn_3);
@@ -60,8 +59,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onClick(View view) {
                 Intent intent = new Intent(getApplicationContext(), history.class);
                 if (result_2 != null || solution_2 != null){
-                    intent.putExtra("result", result_2);
-                    intent.putExtra("solution", solution_2);
+                    intent.putExtra("result_2", result_2);
+                    intent.putExtra("solution_2", solution_2);
                 }
                 startActivity(intent);
             }
@@ -85,10 +84,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
         if(button_text.equals("=")){
-            solution.setText(result.getText());
-            solution_2.add(solution.getText().toString());
+            double val = eval(data);
+            result.setText(String.valueOf(val));
+            result_2.add(String.valueOf(val));
+            solution_2.add(data);
             return;
         }
+
         if(button_text.equals("C")){
             data = data.substring(0, data.length()-1);
             result.setText("0");
@@ -97,34 +99,98 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         solution.setText(data);
 
-        String final_result = getResult(data);
-        if(!final_result.equals("Error")){
-            result.setText(final_result);
-        }
     }
-    String getResult(String data)
-    {
-        try{
-            Context context = Context.enter();
-            context.setOptimizationLevel(-1);
-            Scriptable scriptable = context.initSafeStandardObjects();
-            String final_result = context.evaluateString(scriptable, data, "Javascript",1,null).toString();
-            if(final_result.endsWith(".0")){
-                final_result = final_result.replace(".0","");
+
+    public static double eval(final String str) {
+        return new Object() {
+            int pos = -1, ch;
+
+            void nextChar() {
+                ch = (++pos < str.length()) ? str.charAt(pos) : -1;
             }
-            return final_result;
-        } catch (Exception e){
-            return "Error";
-        }
+
+            boolean eat(int charToEat) {
+                while (ch == ' ') nextChar();
+                if (ch == charToEat) {
+                    nextChar();
+                    return true;
+                }
+                return false;
+            }
+
+            double parse() {
+                nextChar();
+                double x = parseExpression();
+                if (pos < str.length()) throw new RuntimeException("Unexpected: " + (char) ch);
+                return x;
+            }
+
+            // Grammar:
+            // expression = term | expression + term | expression - term
+            // term = factor | term * factor | term / factor
+            // factor = + factor | - factor | ( expression )
+            //        | number | functionName factor | factor ^ factor
+
+            double parseExpression() {
+                double x = parseTerm();
+                for (; ; ) {
+                    if (eat('+')) x += parseTerm(); // addition
+                    else if (eat('-')) x -= parseTerm(); // subtraction
+                    else return x;
+                }
+            }
+
+            double parseTerm() {
+                double x = parseFactor();
+                for (; ; ) {
+                    if (eat('x')) x *= parseFactor(); // multiplication
+                    else if (eat('/')) x /= parseFactor(); // division
+                    else return x;
+                }
+            }
+
+            double parseFactor() {
+                if (eat('+')) return parseFactor(); // unary plus
+                if (eat('-')) return -parseFactor(); // unary minus
+
+                double x;
+                int startPos = this.pos;
+                if (eat('(')) { // parentheses
+                    x = parseExpression();
+                    eat(')');
+                } else if ((ch >= '0' && ch <= '9') || ch == '.') { // numbers
+                    while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
+                    x = Double.parseDouble(str.substring(startPos, this.pos));
+                } else if (ch >= 'a' && ch <= 'z') { // functions
+                    while (ch >= 'a' && ch <= 'z') nextChar();
+                    String func = str.substring(startPos, this.pos);
+                    x = parseFactor();
+                    if (func.equals("sqrt")) x = Math.sqrt(x);
+                    else if (func.equals("sin")) x = Math.sin(Math.toRadians(x));
+                    else if (func.equals("cos")) x = Math.cos(Math.toRadians(x));
+                    else if (func.equals("tan")) x = Math.tan(Math.toRadians(x));
+                    else if (func.equals("log")) x = Math.log10(x);
+                    else if (func.equals("ln")) x = Math.log(x);
+                    else throw new RuntimeException("Unknown function: " + func);
+                } else {
+                    throw new RuntimeException("Unexpected: " + (char) ch);
+                }
+
+                if (eat('^')) x = Math.pow(x, parseFactor()); // exponentiation
+
+                return x;
+            }
+        }.parse();
+
     }
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (result.getText().toString()!=null)
-            outState.putString("result", result.getText().toString());
+        if (result.getText().toString() != null)
+            outState.putString("re", result.getText().toString());
 
         if (solution.getText().toString()!=null)
-            outState.putString("solution", solution.getText().toString());
+            outState.putString("sol", solution.getText().toString());
 
         if (result_2 != null)
             outState.putStringArrayList("results", result_2);
@@ -136,10 +202,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        if (savedInstanceState.get("result")!=null)
-            result.setText(savedInstanceState.get("result").toString());
-        if (savedInstanceState.get("solution")!=null)
-            solution.setText(savedInstanceState.get("solution").toString());
+        if (savedInstanceState.get("re")!=null)
+            result.setText(savedInstanceState.get("re").toString());
+        if (savedInstanceState.get("sol")!=null)
+            solution.setText(savedInstanceState.get("sol").toString());
 
         if (savedInstanceState.get("results")!= null)
             result_2 = savedInstanceState.getStringArrayList("results");
