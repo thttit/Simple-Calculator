@@ -22,8 +22,8 @@ public class history extends AppCompatActivity {
         txt_his = findViewById(R.id.txt_his);
         Bundle extras = getIntent().getExtras();
         if (extras != null ){
-            result_2 = extras.getStringArrayList("result");
-            solution_2 = extras.getStringArrayList("solution");
+            result_2 = extras.getStringArrayList("result_2");
+            solution_2 = extras.getStringArrayList("solution_2");
         }
         String his = "";
         for (int i = result_2.size()-1 ; i >= 0 ; i--) {
