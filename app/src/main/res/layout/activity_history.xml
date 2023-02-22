@@ -7,14 +7,12 @@
     tools:context=".history"
     android:background="#303030">
 
-
     <TextView
         android:id="@+id/txt_his"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView"
         android:textColor="@color/white"
-        android:textSize="20dp"
+        android:textSize="35dp"
         android:layout_margin="10dp"
         android:layout_marginEnd="10dp"
         tools:layout_editor_absoluteX="32dp"
